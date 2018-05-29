@@ -1,0 +1,258 @@
+<!doctype html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<title>Let’s spread some Grids</title>
+
+	<link rel="stylesheet" href="css/reveal.css">
+	<link rel="stylesheet" href="css/theme/black.css">
+
+	<!-- Theme used for syntax highlighting of code -->
+	<link rel="stylesheet" href="lib/css/zenburn.css">
+
+	<!-- Printing and PDF exports -->
+	<script>
+		var link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.type = 'text/css';
+		link.href = window.location.search.match(/print-pdf/gi) ? 'css/print/pdf.css' : 'css/print/paper.css';
+		document.getElementsByTagName('head')[0].appendChild(link);
+	</script>
+</head>
+
+<body>
+	<div class="reveal">
+		<div class="slides">
+			<section>
+				<h1>Let’s spread some Grids</h1>
+				<h3>How to use F31 Grids inside Wordpress</h3>
+				<p>
+					<small>Created by Matteo Monti and Federico Foresti</small>
+				</p>
+			</section>
+			<section>
+				<h2>About Us</h2>
+			</section>
+			<section>
+				<h2>Overview</h2>
+				<p>What is this talk about?</p>
+				<ul>
+					<li>F31 implementation</li>
+					<li>Wp Plugin</li>
+					<li>Scache system</li>
+				</ul>
+			</section>
+			<section>
+				<section>
+					<h2>Requirements/Goals</h2>
+				</section>
+				<section>
+					<h3>4 Experience Site in 2 Month</h3>
+					<ul>
+						<li>User Custom Permissions</li>
+						<li>Same Design as E-com-site</li>
+					</ul>
+				</section>
+				<section>
+					<h3>DRY Principle</h3>
+				</section>
+				<section>
+					<h3>Easy to learn from partner prospective</h3>
+				</section>
+				<section>
+					<h2>IT'S ALREADY LATE!!!</h2>
+				</section>
+			</section>
+			<section>
+				<h2>Solution?</h2>
+			</section>
+			<section>
+				<h2>Toolbar</h2>
+				<ul>
+					<li class="fragment">Already present</li>
+					<li class="fragment">But...</li>
+					<li class="fragment">Hardcoded view and resources</li>
+				</ul>
+			</section>
+			<section>
+				<section>
+					<h2>Custom F31 Solution</h2>
+				</section>
+				<section>
+					<pre><code class="hljs" data-trim contenteditable>
+						[Route("yTos/Gridr/getGridById/{siteCode}/{gridRelease}/{gridId}")]
+
+						public JsonResult GetGridByIdJsonResult
+						(string siteCode, 
+						 string gridRelease, 
+						 int gridId, 
+						 YtosModel ytosModel = null)
+					</code></pre>
+				</section>
+				<section>
+					<pre><code class="hljs" data-trim contenteditable>
+								{
+									Output: " <div>My Awesome DOM</div> ",
+									Css: [
+										{
+											Url: "myOwn.css"
+										}
+									],
+									Js: [
+										{
+											Url: "myOwn.js"
+										}
+									]
+								}
+							</code></pre>
+				</section>
+				<section>
+					<img src="img/spoiler.png" alt="spoiler" style="max-width: 400px; height: auto; background:none; border: none;">
+					<br/>
+					<span class="fragment" style="color:#FFD700;">Works with Components</span>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2>Wp Plugin</h2>
+					<h3 style="text-transform: none">YNAP Grids in Experience</h3>
+				</section>
+				<section>
+					<h3>Goals:</h3>
+					<ul>
+						<li>Easy to use (flat learning curve)</li>
+						<li>Reusable by other teams</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Main Tasks:</h3>
+					<ul>
+						<li>Retrieve the grid</li>
+						<li>Display it</li>
+						<li>Enqueue its resources</li>
+						<li>Cache it (transient cache)</li>
+					</ul>
+				</section>
+				<section>
+					<pre><code class="hljs" data-trim>
+function yge_the_grid($siteCode, $release, $gridId){
+	global $gridsInExperience;
+    global $wp_current_filter;
+    // exclude plugin execution in wp_head (if someone call do_shortcode)
+    if ( in_array('wp_head', $wp_current_filter) )
+        return '';
+    $retval = $gridsInExperience->gridRequestById($siteCode, $release, $gridId);
+    if(false == $retval['success']) 
+        return false;
+    $gridsInExperience->enqueueResources($retval['message']);
+    return $gridsInExperience->getOutput($retval['message']);
+}
+						</code></pre>
+				</section>
+			</section>
+			<section>
+				<section>
+					<p>But... What happens if I update a grid?</p>
+					<img src="img/but.jpg" alt="but..." style="max-width: 400px; height: auto;">
+					<aside class="notes">
+						cosa succede se pubblichiamo? - Griglia non aggiornata
+					</aside>
+				</section>
+				<section>
+					<p>So we need a (smart) scache system</p>
+				</section>
+				<section>
+					<p>When a grid is published the publisher trigger the Wordpress action:
+						<code class="hljs" style="display: inline" data-trim contenteditable>&nbsp;ygridr_grid_published&nbsp;</code>
+					</p>
+				</section>
+				<section>
+					<p>The plugin will:</p>
+					<p style="text-align: left">- Call the F31 evict route
+						<pre><code class="hljs" data-trim contenteditable>[Route("yTos/Gridr/evictById/{division}/{gridRelease}/{gridId}")]</code></pre>
+					</p>
+					<p style="text-align: left">- Flush the cached result of this grids</p>
+				</section>
+			</section>
+			<section>
+				<h2>Difference between F31-Grids &amp; WP-Grids</h2>
+				<ul>
+					<li class="fragment">Hybrid page: Grids/WP page (e.g.
+						<a href="https://www.armani.com/experience/it/made-to-measure/" target="_blank">Made to Measure</a>)</li>
+					<li class="fragment">Multiple grids in page</li>
+					<li class="fragment">No best-match (aka "Non sale la griglia")</li>
+					<li class="fragment">Smart scache</li>
+					<li class="fragment">Experience wpml-language-driven override</li>
+					<li class="fragment">Need schache for coding changes</li>
+				</ul>
+			</section>
+			<section>
+				<h2>How To ... </h2>
+				<ul>
+					<li class="fragment">Install WP plugin YNAP Grid in Experience
+						<br/>
+						<em>(YGrdr 4.34.0 needed)</em>
+					</li>
+					<li class="fragment">Implement getGridById &amp; evictById routes</li>
+					<li class="fragment">Enjoy!</li>
+				</ul>
+				<aside class="notes">
+					Valutazione Shortcode/custom-field
+				</aside>
+			</section>
+			<section>
+				<h2>Next Steps</h2>
+				<aside class="notes">
+					Sviluppo plugin, YGridr Best match ed estenderlo ad altri componenti / coremedia
+				</aside>
+			</section>
+			<section>
+				<h2>Links</h2>
+				<ul>
+					<li>WP plugin repo:
+						<a target="_blank" href="https://git.yoox.net/projects/EX/repos/wp-plugin-ynap-grids-in-experience/browse">wp-plugin-ynap-grids-in-experience</a>
+					</li>
+					<li>Armani F31 routes implementation:
+						<a target="_blank" href="https://git.yoox.net/projects/OFS/repos/ytos-armanigroup/browse/yTos.Web.ARMANIGROUP/Controllers/YtosGridrController.cs#193">yTos.Web.ARMANIGROUP > YtosGridrController.cs</a>
+					</li>
+				</ul>
+			</section>
+			<section>
+				<h2>Mentions</h2>
+				<blockquote>"Thanks for all the fish"</blockquote>
+				and Experience Team for the support.
+			</section>
+		</div>
+	</div>
+
+	<script src="lib/js/head.min.js"></script>
+	<script src="js/reveal.js"></script>
+
+	<script>
+		Reveal.initialize({
+			dependencies: [{
+					src: 'plugin/markdown/marked.js'
+				},
+				{
+					src: 'plugin/markdown/markdown.js'
+				},
+				{
+					src: 'plugin/notes/notes.js',
+					async: true
+				},
+				{
+					src: 'plugin/highlight/highlight.js',
+					async: true,
+					callback: function () {
+						hljs.initHighlightingOnLoad();
+					}
+				}
+			]
+		});
+	</script>
+</body>
+
+</html>
